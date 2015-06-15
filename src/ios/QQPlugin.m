@@ -8,11 +8,18 @@
 
 #import <AdSupport/ASIdentifierManager.h>
 #import <CommonCrypto/CommonDigest.h>
-#import "QQPlugin.h"
+
+#import <TencentOpenAPI/TencentOAuth.h>
+#import <TencentOpenAPI/TencentOAuthObject.h>
+
 #import <TencentOpenAPI/QQApiInterface.h>
 #import <TencentOpenAPI/QQApiInterfaceObject.h>
 
-@interface QQPlugin()
+#import "QQPlugin.h"
+
+@interface QQPlugin()<TencentSessionDelegate>
+
+@property (nonatomic, retain) TencentOAuth* tencentOAuth;
 
 - (void) validateLicense:(NSString*) license;
 
@@ -24,6 +31,7 @@
 {
     [super pluginInitialize];
     
+    self.inited = NO;
     self.licenseValidated = false;
     self.isTesting = false;
     self.logVerbose = false;
@@ -36,6 +44,8 @@
 }
 
 - (void) setOptions:(CDVInvokedUrlCommand *)command {
+    NSLog(@"setOptions");
+    
     if([command.arguments count] > 0) {
         NSDictionary* options = [command argumentAtIndex:0 withDefault:[NSNull null]];
         [self parseOptions:options];
@@ -46,6 +56,26 @@
 
 - (void) share:(CDVInvokedUrlCommand *)command {
     NSLog(@"share");
+    
+    if(! [QQApiInterface isQQInstalled]) {
+        [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                    messageAsInt:EQQAPIQQNOTINSTALLED]
+                            to:command.callbackId];
+        return;
+    }
+    
+    if(! [QQApiInterface isQQSupportApi]) {
+        [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                    messageAsInt:EQQAPIQQNOTSUPPORTAPI]
+                            to:command.callbackId];
+        return;
+    }
+    
+    if(! self.inited) {
+        self.tencentOAuth = [[TencentOAuth alloc] initWithAppId:self.appId
+                                                    andDelegate:self];
+        self.inited = true;
+    }
     
     if([command.arguments count] > 0) {
         NSDictionary* options = [command argumentAtIndex:0 withDefault:[NSNull null]];
@@ -141,5 +171,22 @@
 #pragma mark pure virtual methods
 
 - (NSString*) __getProductShortName { return @"QQ"; }
+
+#pragma mark TencentSessionDelegate methods
+
+- (void) tencentDidLogin
+{
+    
+}
+
+- (void) tencentDidNotLogin:(BOOL)cancelled
+{
+    
+}
+
+- (void) tencentDidNotNetWork
+{
+    
+}
 
 @end

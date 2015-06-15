@@ -28,6 +28,8 @@
 
 - (void) share:(CDVInvokedUrlCommand *)command;
 
+@property (assign) BOOL inited;
+
 @property (assign) BOOL licenseValidated;
 @property (assign) BOOL isTesting;
 @property (assign) BOOL logVerbose;

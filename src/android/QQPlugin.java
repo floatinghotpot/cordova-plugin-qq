@@ -1,30 +1,36 @@
 package com.rjfun.cordova.qq;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.apache.cordova.PluginResult.Status;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.os.Handler;
-import android.os.Message;
+import android.os.Bundle;
 import android.util.Log;
 
 import com.rjfun.cordova.ext.CordovaPluginExt;
+import com.tencent.connect.share.QQShare;
+import com.tencent.connect.share.QzoneShare;
+import com.tencent.open.utils.HttpUtils.HttpStatusException;
+import com.tencent.open.utils.HttpUtils.NetworkUnavailableException;
+import com.tencent.tauth.IRequestListener;
+import com.tencent.tauth.IUiListener;
+import com.tencent.tauth.Tencent;
+import com.tencent.tauth.UiError;
 
-public class LLPayPlugin extends CordovaPluginExt {
-	private static final String LOGTAG = "LLPayPlugin";
+@SuppressWarnings("deprecation")
+public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestListener {
+	private static final String LOGTAG = "QQPlugin";
 	
     /** Cordova Actions. */
 	public static final String ACTION_SET_OPTIONS = "setOptions";
@@ -35,12 +41,30 @@ public class LLPayPlugin extends CordovaPluginExt {
     public static final String OPT_IS_TESTING = "isTesting";
     public static final String OPT_LOG_VERBOSE = "logVerbose";
 
+	public static final String OPT_APPID = "appId";
+    public static final String OPT_APPKEY = "appKey";
+    public static final String OPT_APPNAME = "appName";
+
+	public static final String OPT_MESSAGE = "message";
+    public static final String OPT_SUBJECT = "subject";
+    public static final String OPT_IMAGE = "image";
+	public static final String OPT_URL = "url";
+    public static final String OPT_QQZONE = "qqZone";
+
+    protected boolean inited = false;
+
     protected boolean licensed = false;
 	protected boolean isTesting = false;
 	protected boolean logVerbose = false;
 
+    protected String appId = "";
+    protected String appKey = "";
+    protected String appName = "";
+
+    protected Tencent mTencent = null;
+
 	protected String __getProductShortName() {
-		return "LLPay";
+		return "QQ";
 	}
 
     @Override
@@ -53,11 +77,13 @@ public class LLPayPlugin extends CordovaPluginExt {
             result = new PluginResult(Status.OK);
             
         } else if (ACTION_SHARE.equals(action)) {
-            JSONObject args = inputs.optJSONObject(0);
-        	
-        	boolean isOk = this.share( args );
+            JSONObject options = inputs.optJSONObject(0);
+            if(options.length() > 1) {
+                this.setOptions(options);
+            }
+            boolean isOk = this.share( options );
         	result = new PluginResult(isOk ? Status.OK : Status.ERROR);
-            
+
         } else {
             Log.w(LOGTAG, String.format("Invalid action passed: %s", action));
             result = new PluginResult(Status.INVALID_ACTION);
@@ -81,6 +107,10 @@ public class LLPayPlugin extends CordovaPluginExt {
     		if(options.has(OPT_LICENSE)) validateLicense(options.optString(OPT_LICENSE));
     		if(options.has(OPT_IS_TESTING)) this.isTesting = options.optBoolean(OPT_IS_TESTING);
     		if(options.has(OPT_LOG_VERBOSE)) this.logVerbose = options.optBoolean(OPT_LOG_VERBOSE);
+
+            if(options.has(OPT_APPID)) this.appId = options.optString(OPT_APPID);
+            if(options.has(OPT_APPKEY)) this.appKey = options.optString(OPT_APPKEY);
+            if(options.has(OPT_APPNAME)) this.appName = options.optString(OPT_APPNAME);
     	}
     }
     
@@ -121,51 +151,111 @@ public class LLPayPlugin extends CordovaPluginExt {
 	public boolean share(JSONObject args) {
     	Log.d(LOGTAG, "share" );
     	
-    	if(! licensed) {
-    		Date now = new Date();
-    		
-    		DateFormat format = new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH);
-    		try {
-				Date expireDate = format.parse("01-10-2015");
-				if(now.compareTo(expireDate) > 0) {
-					Log.w(LOGTAG, "trial expired, need a license");
-					return false;
-				}
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+        if(! this.inited) {
+            this.mTencent = Tencent.createInstance(this.appId, this.getActivity().getApplicationContext());
+            this.inited = true;
     	}
-    	
-    	String content4Pay = args.toString();
-    	MobileSecurePayer msp = new MobileSecurePayer();
-        boolean bRet = msp.pay(content4Pay, mHandler, Constants.RQF_PAY, this.getActivity(), false);
-    	
-    	return bRet;
-	}
-	
-	public void firePayEndEvent(final String strRet) {
-	    final Activity activity = getActivity();
-	    activity.runOnUiThread(new Runnable(){
-            @Override
-            public void run() {
-            	Log.d(LOGTAG, "onLLPayEnd: " + strRet );
-            	fireEvent("LLPay","onLLPayEnd", "{\"ret\":"+strRet+"}");
-            }
-	    });
-	}
-	
-    private Handler mHandler = new Handler() {
-        public void handleMessage(Message msg) {
-            String strRet = (String) msg.obj;
-            switch (msg.what) {
-                case Constants.RQF_PAY: {
-                	firePayEndEvent( strRet );
-                }
-                break;
-            }
-            super.handleMessage(msg);
-        }
-    };
+        
+        String message = args.optString(OPT_MESSAGE);
+        String subject = args.optString(OPT_SUBJECT);
+        String image = args.optString(OPT_IMAGE);
+        String url = args.optString(OPT_URL);
 
+        boolean qqZone = args.optBoolean(OPT_QQZONE);
+        if(qqZone) {
+            Bundle params = new Bundle();
+            params.putInt(QzoneShare.SHARE_TO_QZONE_KEY_TYPE, QzoneShare.SHARE_TO_QZONE_TYPE_IMAGE_TEXT);
+            params.putString(QzoneShare.SHARE_TO_QQ_TITLE, subject);
+            params.putString(QzoneShare.SHARE_TO_QQ_SUMMARY,  message);
+            params.putString(QzoneShare.SHARE_TO_QQ_TARGET_URL,  url);
+            params.putString(QzoneShare.SHARE_TO_QQ_IMAGE_URL, image);
+            params.putString(QzoneShare.SHARE_TO_QQ_APP_NAME,  this.appName + "" + this.appId);
+            mTencent.shareToQzone(this.getActivity(), params, this);
+
+        } else {
+            Bundle params = new Bundle();
+            params.putInt(QQShare.SHARE_TO_QQ_KEY_TYPE, QQShare.SHARE_TO_QQ_TYPE_DEFAULT);
+            params.putString(QQShare.SHARE_TO_QQ_TITLE, subject);
+            params.putString(QQShare.SHARE_TO_QQ_SUMMARY,  message);
+            params.putString(QQShare.SHARE_TO_QQ_TARGET_URL,  url);
+            params.putString(QQShare.SHARE_TO_QQ_IMAGE_URL, image);
+            params.putString(QQShare.SHARE_TO_QQ_APP_NAME,  this.appName + "" + this.appId);
+            //params.putInt(QQShare.SHARE_TO_QQ_EXT_INT,  0);
+            mTencent.shareToQQ(this.getActivity(), params, this);
+        }
+
+        return true;
+	}
+
+	@Override
+	public void onComplete(JSONObject arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onConnectTimeoutException(ConnectTimeoutException arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onHttpStatusException(HttpStatusException arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onIOException(IOException arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onJSONException(JSONException arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onMalformedURLException(MalformedURLException arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onNetworkUnavailableException(NetworkUnavailableException arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onSocketTimeoutException(SocketTimeoutException arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onUnknowException(Exception arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onCancel() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onComplete(Object arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void onError(UiError arg0) {
+		// TODO Auto-generated method stub
+
+	}
 }

@@ -35,6 +35,12 @@ button {
 </style>
 </head>
 <body onload="onLoad()">
+	<div id="fullpage">
+		<h1>Demo for QQ Plugin</h1>
+
+        <button id='share'>Share to QQ</button>
+	</div>
+</body>
 <script>
     function onLoad() {
         if(( /(ipad|iphone|ipod|android|windows phone)/i.test(navigator.userAgent) )) {
@@ -45,27 +51,25 @@ button {
     }
 
     function initApp() {
-		if (! QQ ) { alert( 'QQ plugin not ready' ); return; }
+		if (typeof QQ === 'undefined' ) { alert( 'QQ plugin not ready' ); return; }
 
         QQ.setOptions({
-            appId: '',
-            appName: '',
+            appId: '1104702980',
+            appName: 'Demo for QQPlugin',
+            appKey: 'Mz3XS2MPwjM8Zcvi'
         });
     }
     
-    $('button#share').on('click', function(e){
-        QQ.share('message content', 'subject',  null, 'https://github.com/floatinghotpot/cordova-plugin-qq', 
-            function(){
+    $('button#share').click(function(e){
+        QQ.share('这是QQ分享的内容',
+                 '标题',
+                 'http://mat1.gtimg.com/www/icon/favicon2.ico',
+                 'https://github.com/floatinghotpot/cordova-plugin-qq',
+            function(data){
                 console.log('share okay');
-            }, function(){
-                console.log('share fail');
+            }, function(data){
+                alert('share fail:' + data);
             });
     });
 </script>
-	<div id="fullpage">
-		<h1>Demo for QQ Plugin</h1>
-
-        <button id='share'>Share to QQ</button>
-	</div>
-</body>
 </html>
