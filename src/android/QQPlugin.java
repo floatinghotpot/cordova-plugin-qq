@@ -15,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -161,19 +162,17 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
         String image = args.optString(OPT_IMAGE);
         String url = args.optString(OPT_URL);
 
-        boolean qqZone = args.optBoolean(OPT_QQZONE);
+        final boolean qqZone = args.optBoolean(OPT_QQZONE);
+        final Bundle params = new Bundle();
         if(qqZone) {
-            Bundle params = new Bundle();
             params.putInt(QzoneShare.SHARE_TO_QZONE_KEY_TYPE, QzoneShare.SHARE_TO_QZONE_TYPE_IMAGE_TEXT);
             params.putString(QzoneShare.SHARE_TO_QQ_TITLE, subject);
             params.putString(QzoneShare.SHARE_TO_QQ_SUMMARY,  message);
             params.putString(QzoneShare.SHARE_TO_QQ_TARGET_URL,  url);
             params.putString(QzoneShare.SHARE_TO_QQ_IMAGE_URL, image);
             params.putString(QzoneShare.SHARE_TO_QQ_APP_NAME,  this.appName + "" + this.appId);
-            mTencent.shareToQzone(this.getActivity(), params, this);
 
         } else {
-            Bundle params = new Bundle();
             params.putInt(QQShare.SHARE_TO_QQ_KEY_TYPE, QQShare.SHARE_TO_QQ_TYPE_DEFAULT);
             params.putString(QQShare.SHARE_TO_QQ_TITLE, subject);
             params.putString(QQShare.SHARE_TO_QQ_SUMMARY,  message);
@@ -181,8 +180,20 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
             params.putString(QQShare.SHARE_TO_QQ_IMAGE_URL, image);
             params.putString(QQShare.SHARE_TO_QQ_APP_NAME,  this.appName + "" + this.appId);
             //params.putInt(QQShare.SHARE_TO_QQ_EXT_INT,  0);
-            mTencent.shareToQQ(this.getActivity(), params, this);
         }
+
+        final Activity activity = this.getActivity();
+        final IUiListener qqDelegate = this;
+        activity.runOnUiThread(new Runnable(){
+            @Override
+            public void run() {
+                if(qqZone) {
+                    mTencent.shareToQzone(activity, params, qqDelegate);
+                } else {
+                    mTencent.shareToQQ(activity, params, qqDelegate);
+                }
+            }
+        });
 
         return true;
 	}
