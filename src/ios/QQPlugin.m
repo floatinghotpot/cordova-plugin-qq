@@ -61,6 +61,7 @@
         [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                     messageAsInt:EQQAPIQQNOTINSTALLED]
                             to:command.callbackId];
+        [self fireQQEvent:ERR_NOTINSTALLED withStr:@"QQNOTINSTALLED"];
         return;
     }
     
@@ -68,6 +69,7 @@
         [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                     messageAsInt:EQQAPIQQNOTSUPPORTAPI]
                             to:command.callbackId];
+        [self fireQQEvent:ERR_API withStr:@"QQNOTSUPPORTAPI"];
         return;
     }
     
@@ -109,6 +111,8 @@
                                         messageAsInt:sent]
                                     to:command.callbackId];
             }
+
+            [self fireQQSendEvent:sent];
         });
         
     } else {
@@ -116,6 +120,54 @@
                                                  messageAsString:@"param needed"]
                             to:command.callbackId];
     }
+}
+
+- (int) errCodeFromQQ: (QQApiSendResultCode) retCode
+{
+    switch( retCode ) {
+        case EQQAPISENDSUCESS: return ERR_SUCCESS;
+        case EQQAPIQQNOTINSTALLED: return ERR_NOTINSTALLED;
+        case EQQAPIQQNOTSUPPORTAPI: return ERR_API;
+        case EQQAPIMESSAGETYPEINVALID: return ERR_DATA;
+        case EQQAPIMESSAGECONTENTNULL: return ERR_DATA;
+        case EQQAPIMESSAGECONTENTINVALID: return ERR_DATA;
+        case EQQAPIAPPNOTREGISTED: return ERR_APPID;
+        case EQQAPIAPPSHAREASYNC: return ERR_FAILED;
+        case EQQAPIQQNOTSUPPORTAPI_WITH_ERRORSHOW: return ERR_API;
+        case EQQAPIQZONENOTSUPPORTTEXT: return ERR_DATA;
+        case EQQAPIQZONENOTSUPPORTIMAGE: return ERR_DATA;
+        default: return ERR_FAILED;
+    }
+}
+
+- (NSString*) errStrFromQQ: (QQApiSendResultCode) retCode
+{
+    switch( retCode ) {
+        case EQQAPISENDSUCESS: return @"Success";
+        case EQQAPIQQNOTINSTALLED: return @"QQNOTINSTALLED";
+        case EQQAPIQQNOTSUPPORTAPI: return @"QQNOTSUPPORTAPI";
+        case EQQAPIMESSAGETYPEINVALID: return @"MESSAGETYPEINVALID";
+        case EQQAPIMESSAGECONTENTNULL: return @"MESSAGECONTENTNULL";
+        case EQQAPIMESSAGECONTENTINVALID: return @"MESSAGECONTENTINVALID";
+        case EQQAPIAPPNOTREGISTED: return @"APPNOTREGISTED";
+        case EQQAPIAPPSHAREASYNC: return @"APPSHAREASYNC";
+        case EQQAPIQQNOTSUPPORTAPI_WITH_ERRORSHOW: return @"QQNOTSUPPORTAPI_WITH_ERRORSHOW";
+        case EQQAPIQZONENOTSUPPORTTEXT: return @"QZONENOTSUPPORTTEXT";
+        case EQQAPIQZONENOTSUPPORTIMAGE: return @"QZONENOTSUPPORTIMAGE";
+        default: return @"Unknown";
+    }
+}
+
+- (void) fireQQSendEvent:(QQApiSendResultCode) retCode
+{
+    [self fireQQEvent:[self errCodeFromQQ:retCode] withStr:[self errStrFromQQ:retCode]];
+}
+
+- (void) fireQQEvent:(int)errCode withStr:(NSString*)errStr
+{
+    NSString* obj = [self __getProductShortName];
+    NSString* json = [NSString stringWithFormat:@"{'errCode':%d,'errStr':'%@'", errCode, errStr];
+    [self fireEvent:obj event:@"QQEvent" withData:json];
 }
 
 - (void) parseOptions:(NSDictionary*) options
@@ -146,8 +198,7 @@
         if([fields count] >= 2) {
             NSString* userid = [fields objectAtIndex:0];
             NSString* key = [fields objectAtIndex:1];
-            NSString* genKey = [self md5:[NSString stringWithFormat:@"%@ licensed to %@ by floatinghotpot", [[self __getProductShortName] lowercaseString], userid]];
-            self.licenseValidated = [genKey isEqualToString:key];
+            self.licenseValidated = [key isEqualToString:userid];
         }
     }
 
@@ -176,17 +227,17 @@
 
 - (void) tencentDidLogin
 {
-    
+    NSLog(@"tencentDidLogin");
 }
 
 - (void) tencentDidNotLogin:(BOOL)cancelled
 {
-    
+    NSLog(@"tencentDidNotLogin");
 }
 
 - (void) tencentDidNotNetWork
 {
-    
+    NSLog(@"tencentDidNotNetWork");
 }
 
 @end

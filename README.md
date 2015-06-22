@@ -30,6 +30,21 @@ shareQZone(message, subject, img, url, success_callback, fail_callback);
 // login(success_callback, fail_callback);
 // logout()
 
+// Events
+document.addEventListener('QQEvent', function(e) {
+    var errCode = e.errCode;
+    var errStr = e.errStr;
+    switch(errCode) {
+    case QQ.RESULT.SUCCESS: // complete
+        break;
+    case QQ.RESULT.CANCELLED: // user cancelled
+        break;
+    default: // other error
+        alert( errCode + ", " + errStr );
+    }
+});
+
+
 ```
 
 ## Example Code ##

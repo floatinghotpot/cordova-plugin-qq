@@ -5,7 +5,6 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.apache.cordova.PluginResult.Status;
@@ -13,12 +12,11 @@ import org.apache.http.conn.ConnectTimeoutException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-
 import com.rjfun.cordova.ext.CordovaPluginExt;
 import com.tencent.connect.share.QQShare;
 import com.tencent.connect.share.QzoneShare;
@@ -36,6 +34,15 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
     /** Cordova Actions. */
 	public static final String ACTION_SET_OPTIONS = "setOptions";
 	public static final String ACTION_SHARE = "share";
+
+	public static int ERR_SUCCESS = 0;
+    public static int ERR_CANCELLED = 1;
+    public static int ERR_NOTINSTALLED = 2;
+    public static int ERR_APPID = 3;
+    public static int ERR_APPKEY = 4;
+    public static int ERR_API = 5;
+    public static int ERR_DATA = 6;
+    public static int ERR_FAILED = 7;
 
     /* options */
 	public static final String OPT_LICENSE = "license";
@@ -99,13 +106,13 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
     protected void pluginInitialize() {
     	super.pluginInitialize();
     	
+        cordova.setActivityResultCallback(this);
 	}
 	
     public void setOptions(JSONObject options) {
     	Log.d(LOGTAG, "setOptions" );
     	
     	if(options != null) {
-    		if(options.has(OPT_LICENSE)) validateLicense(options.optString(OPT_LICENSE));
     		if(options.has(OPT_IS_TESTING)) this.isTesting = options.optBoolean(OPT_IS_TESTING);
     		if(options.has(OPT_LOG_VERBOSE)) this.logVerbose = options.optBoolean(OPT_LOG_VERBOSE);
 
@@ -115,21 +122,6 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
     	}
     }
     
-    @SuppressLint("DefaultLocale")
-	private void validateLicense(String license) {
-    	String[] fields = license.split("/");
-    	if(fields.length >= 2) {
-        	String userid = fields[0];	
-        	String key = fields[1];
-        	String genKey2 = this.md5( __getProductShortName().toLowerCase() + " licensed to " + userid + " by floatinghotpot" );
-        	licensed = key.equalsIgnoreCase(genKey2);
-    	}
-    	
-    	if(licensed) {
-    		Log.w(LOGTAG, "valid license");
-    	}
-    }
-
     public final String md5(final String s) {
         try {
             MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
@@ -199,74 +191,76 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
 	}
 
 	@Override
+	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+	    mTencent.onActivityResult(requestCode, resultCode, intent);
+	    super.onActivityResult(requestCode, resultCode, intent);
+	}
+
+    @SuppressLint("DefaultLocale")
+    protected void fireQQEvent(int errCode, String errStr) {
+        String obj = __getProductShortName();
+        String json = String.format("{'errCode':%d,'errStr':'%s'}", errCode, errStr);
+        Log.d(LOGTAG, json);
+        fireEvent(obj, "QQEvent", json);
+    }
+
+	@Override
 	public void onComplete(JSONObject arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onConnectTimeoutException(ConnectTimeoutException arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onHttpStatusException(HttpStatusException arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onIOException(IOException arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onJSONException(JSONException arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onMalformedURLException(MalformedURLException arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onNetworkUnavailableException(NetworkUnavailableException arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onSocketTimeoutException(SocketTimeoutException arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onUnknowException(Exception arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onCancel() {
-		// TODO Auto-generated method stub
-
+		fireQQEvent(ERR_SUCCESS, "Complete");
 	}
 
 	@Override
 	public void onComplete(Object arg0) {
-		// TODO Auto-generated method stub
+		fireQQEvent(ERR_SUCCESS, "Complete");
+	}
 
+	@Override
+	public void onCancel() {
+		fireQQEvent(ERR_CANCELLED, "Cancelled");
+	}
+
+	@Override
+	public void onConnectTimeoutException(ConnectTimeoutException arg0) {
+		fireQQEvent(ERR_FAILED, "ConnectTimeout");
+	}
+
+	@Override
+	public void onHttpStatusException(HttpStatusException arg0) {
+		fireQQEvent(ERR_FAILED, "HttpStatusException");
+	}
+
+	@Override
+	public void onIOException(IOException arg0) {
+		fireQQEvent(ERR_FAILED, "IOException");
+	}
+
+	@Override
+	public void onJSONException(JSONException arg0) {
+		fireQQEvent(ERR_DATA, "JSONException");
+	}
+
+	@Override
+	public void onMalformedURLException(MalformedURLException arg0) {
+		fireQQEvent(ERR_DATA, "MalformedURL");
+	}
+
+	@Override
+	public void onNetworkUnavailableException(NetworkUnavailableException arg0) {
+		fireQQEvent(ERR_FAILED, "NetworkUnavailable");
+	}
+
+	@Override
+	public void onSocketTimeoutException(SocketTimeoutException arg0) {
+		fireQQEvent(ERR_FAILED, "SocketTimeout");
+	}
+
+	@Override
+	public void onUnknowException(Exception arg0) {
+		fireQQEvent(ERR_FAILED, "UnknowException");
 	}
 
 	@Override
 	public void onError(UiError arg0) {
-		// TODO Auto-generated method stub
-
+		fireQQEvent(ERR_FAILED, "Error");
 	}
 }

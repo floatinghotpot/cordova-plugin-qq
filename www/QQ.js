@@ -13,21 +13,15 @@ var qqExport = {};
  *   }
  */
 
-qqExport.ResultCode = {
-    EQQAPISENDSUCESS : 0,
-    EQQAPIQQNOTINSTALLED : 1,
-    EQQAPIQQNOTSUPPORTAPI : 2,
-    EQQAPIMESSAGETYPEINVALID : 3,
-    EQQAPIMESSAGECONTENTNULL : 4,
-    EQQAPIMESSAGECONTENTINVALID : 5,
-    EQQAPIAPPNOTREGISTED : 6,
-    EQQAPIAPPSHAREASYNC : 7,
-    EQQAPIQQNOTSUPPORTAPI_WITH_ERRORSHOW : 8,
-    EQQAPISENDFAILD : -1,
-    //qzone分享不支持text类型分享
-    EQQAPIQZONENOTSUPPORTTEXT : 10000,
-    //qzone分享不支持image类型分享
-    EQQAPIQZONENOTSUPPORTIMAGE : 10001,
+qqExport.RESULT = {
+    SUCCESS: 0,
+    CANCELLED: 1,
+    NOTINSTALLED: 2,
+    BADAPPID: 3,
+    BADAPPKEY: 4,
+    BADAPI: 5,
+    BADDATA: 6,
+    FAILED: 7
 };
 
 qqExport.setOptions = function(options, successCallback, failureCallback) {

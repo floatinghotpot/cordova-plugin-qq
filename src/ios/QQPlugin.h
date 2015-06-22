@@ -22,6 +22,17 @@
 #define OPT_URL             @"url"
 #define OPT_QQZONE          @"qqZone"
 
+enum {
+    ERR_SUCCESS         = 0,
+    ERR_CANCELLED       = 1,
+    ERR_NOTINSTALLED    = 2,
+    ERR_APPID           = 3,
+    ERR_APPKEY          = 4,
+    ERR_API             = 5,
+    ERR_DATA            = 6,
+    ERR_FAILED          = 7
+};
+
 @interface QQPlugin : CDVPluginExt
 
 - (void) setOptions:(CDVInvokedUrlCommand *)command;
