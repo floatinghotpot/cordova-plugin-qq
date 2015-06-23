@@ -17,7 +17,7 @@
 
 #import "QQPlugin.h"
 
-@interface QQPlugin()<TencentSessionDelegate>
+@interface QQPlugin()<TencentSessionDelegate, QQApiInterfaceDelegate>
 
 @property (nonatomic, retain) TencentOAuth* tencentOAuth;
 
@@ -40,7 +40,7 @@
 }
 
 - (void)dealloc {
-
+    
 }
 
 - (void) setOptions:(CDVInvokedUrlCommand *)command {
@@ -108,11 +108,9 @@
                                     to:command.callbackId];
             } else {
                 [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                        messageAsInt:sent]
+                                                            messageAsInt:sent]
                                     to:command.callbackId];
             }
-
-            [self fireQQSendEvent:sent];
         });
         
     } else {
@@ -122,9 +120,10 @@
     }
 }
 
-- (int) errCodeFromQQ: (QQApiSendResultCode) retCode
+- (int) errCodeFromQQ: (int) retCode
 {
     switch( retCode ) {
+        case -4: return ERR_CANCELLED;
         case EQQAPISENDSUCESS: return ERR_SUCCESS;
         case EQQAPIQQNOTINSTALLED: return ERR_NOTINSTALLED;
         case EQQAPIQQNOTSUPPORTAPI: return ERR_API;
@@ -140,9 +139,10 @@
     }
 }
 
-- (NSString*) errStrFromQQ: (QQApiSendResultCode) retCode
+- (NSString*) errStrFromQQ: (int) retCode
 {
     switch( retCode ) {
+        case -4: return @"Cancelled";
         case EQQAPISENDSUCESS: return @"Success";
         case EQQAPIQQNOTINSTALLED: return @"QQNOTINSTALLED";
         case EQQAPIQQNOTSUPPORTAPI: return @"QQNOTSUPPORTAPI";
@@ -166,7 +166,7 @@
 - (void) fireQQEvent:(int)errCode withStr:(NSString*)errStr
 {
     NSString* obj = [self __getProductShortName];
-    NSString* json = [NSString stringWithFormat:@"{'errCode':%d,'errStr':'%@'", errCode, errStr];
+    NSString* json = [NSString stringWithFormat:@"{'errCode':%d,'errStr':'%@'}", errCode, errStr];
     [self fireEvent:obj event:@"QQEvent" withData:json];
 }
 
@@ -239,5 +239,37 @@
 {
     NSLog(@"tencentDidNotNetWork");
 }
+
+#pragma mark CDVPlugin overrides
+
+- (void) handleOpenURL:(NSNotification *)notification
+{
+    NSURL* url = [notification object];
+
+    if([url isKindOfClass:[NSURL class]]) {
+        [QQApiInterface handleOpenURL:url delegate:self];
+    }
+}
+
+- (void)onReq:(QQBaseReq *)req
+{
+    NSLog( @"req" );
+}
+
+- (void)onResp:(QQBaseResp *)resp
+{
+    NSLog( @"resp" );
+
+    if(resp != nil) {
+        NSLog( @"%@, %@, %d, %@", resp.result, resp.description, resp.type, resp.extendInfo );
+        [self fireQQSendEvent:[resp.result intValue]];
+    }
+}
+
+- (void)isOnlineResponse:(NSDictionary *)response
+{
+    NSLog( @"response" );
+}
+
 
 @end
