@@ -53,19 +53,6 @@ button {
     function initApp() {
 		if (typeof QQ === 'undefined' ) { alert( 'QQ plugin not ready' ); return; }
 
-        document.addEventListener('QQEvent', function(e) {
-            var errCode = e.errCode;
-            var errStr = e.errStr;
-            switch(errCode) {
-            case QQ.RESULT.SUCCESS: // complete
-                break;
-            case QQ.RESULT.CANCELLED: // user cancelled
-                break;
-            default: // other error
-                alert( errCode + ", " + errStr );
-            }
-        });
-
         QQ.setOptions({
             appId: '1104702980',
             appName: 'Demo for QQPlugin',
@@ -78,10 +65,10 @@ button {
                  '标题',
                  'http://img3.cache.netease.com/photo/0005/2013-03-07/8PBKS8G400BV0005.jpg',
                  'https://github.com/floatinghotpot/cordova-plugin-qq',
-            function(data){
-                console.log('share okay');
-            }, function(data){
-                alert('share fail:' + data);
+            function(ok){
+                alert('share: ' + (ok ? 'okay':'cancelled'));
+            }, function(err){
+                alert('share fail, err:' + err);
             });
     });
 </script>

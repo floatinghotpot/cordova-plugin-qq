@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-qq",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "Cordova plugin for Tencent QQ Open SDK",
   "cordova": {
     "id": "cordova-plugin-qq",

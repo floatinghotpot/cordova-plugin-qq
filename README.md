@@ -14,6 +14,7 @@ TODO:
 ## APIs ##
 
 ```javascript
+// set app id before share
 setOptions({
     appId: 'nnn',
     appName: 'TestQQ',
@@ -26,39 +27,39 @@ share(message, subject, img, url, success_callback, fail_callback);
 // share to QQZone
 shareQZone(message, subject, img, url, success_callback, fail_callback);
 
+success_callback = function(shared) {
+    if(shared) console.log('shared');
+    else console.log('cancelled');
+};
+
+fail_callback = function(err) {
+    console.log('share fail, error code: ' + err);
+};
+
 // TODO:
 // login(success_callback, fail_callback);
 // logout()
-
-// Events
-document.addEventListener('QQEvent', function(e) {
-    var errCode = e.errCode;
-    var errStr = e.errStr;
-    switch(errCode) {
-    case QQ.RESULT.SUCCESS: // complete
-        break;
-    case QQ.RESULT.CANCELLED: // user cancelled
-        break;
-    default: // other error
-        alert( errCode + ", " + errStr );
-    }
-});
-
 
 ```
 
 ## Example Code ##
 
 ```javascript
-QQ.share('这是QQ分享的内容',
-         '标题',
-         'http://mat1.gtimg.com/www/icon/favicon2.ico',
-         'https://github.com/floatinghotpot/cordova-plugin-qq',
-    function(data){
-        console.log('share okay');
-    }, function(data){
-        alert('share fail:' + data);
+    QQ.setOptions({
+        appId: '1234567',
+        appName: 'Demo for QQPlugin',
+        appKey: 'xxx'
     });
+
+    QQ.share('这是QQ分享的内容',
+             '标题',
+             'http://img3.cache.netease.com/photo/0005/2013-03-07/8PBKS8G400BV0005.jpg',
+             'https://github.com/floatinghotpot/cordova-plugin-qq',
+        function(ok){
+            alert('share: ' + (ok ? 'okay':'cancelled'));
+        }, function(err){
+            alert('share fail, err:' + err);
+        });
 
 ```
 
