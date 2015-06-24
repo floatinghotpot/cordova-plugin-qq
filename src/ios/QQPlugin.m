@@ -20,6 +20,7 @@
 @interface QQPlugin()<TencentSessionDelegate, QQApiInterfaceDelegate>
 
 @property (nonatomic, retain) TencentOAuth* tencentOAuth;
+@property (nonatomic, strong) NSString *currentCallbackId;
 
 - (void) validateLicense:(NSString*) license;
 
@@ -36,7 +37,7 @@
     self.isTesting = false;
     self.logVerbose = false;
     
-    srand((unsigned int) time(NULL));
+    self.currentCallbackId = nil;
 }
 
 - (void)dealloc {
@@ -59,7 +60,7 @@
     
     if(! [QQApiInterface isQQInstalled]) {
         [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                    messageAsInt:EQQAPIQQNOTINSTALLED]
+                                                    messageAsInt:ERR_NOTINSTALLED]
                             to:command.callbackId];
         [self fireQQEvent:ERR_NOTINSTALLED withStr:@"QQNOTINSTALLED"];
         return;
@@ -67,7 +68,7 @@
     
     if(! [QQApiInterface isQQSupportApi]) {
         [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                    messageAsInt:EQQAPIQQNOTSUPPORTAPI]
+                                                    messageAsInt:ERR_API]
                             to:command.callbackId];
         [self fireQQEvent:ERR_API withStr:@"QQNOTSUPPORTAPI"];
         return;
@@ -102,20 +103,27 @@
             SendMessageToQQReq *req = [SendMessageToQQReq reqWithContent:newsObj];
 
             QQApiSendResultCode sent = qqZone ? [QQApiInterface SendReqToQZone:req] : [QQApiInterface sendReq:req];
-            
-            if(sent == EQQAPISENDSUCESS) {
-                [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK]
-                                    to:command.callbackId];
-            } else {
-                [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                            messageAsInt:sent]
-                                    to:command.callbackId];
+
+            NSLog(@"sent result: %d", sent);
+            switch(sent) {
+                case EQQAPIAPPSHAREASYNC:
+                    self.currentCallbackId = command.callbackId;
+                    break;
+                case EQQAPISENDSUCESS:
+                    [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                                messageAsBool:true]
+                                        to:command.callbackId];
+                    break;
+                default:
+                    [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                                messageAsInt: [self errCodeFromQQ:sent]]
+                                        to:command.callbackId];
             }
         });
         
     } else {
         [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                 messageAsString:@"param needed"]
+                                                 messageAsInt:ERR_DATA]
                             to:command.callbackId];
     }
 }
@@ -160,7 +168,26 @@
 
 - (void) fireQQSendEvent:(QQApiSendResultCode) retCode
 {
-    [self fireQQEvent:[self errCodeFromQQ:retCode] withStr:[self errStrFromQQ:retCode]];
+    if(self.currentCallbackId != nil) {
+        int ret = [self errCodeFromQQ:retCode];
+        switch(ret) {
+            case ERR_SUCCESS:
+            case ERR_CANCELLED:
+                [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                           messageAsBool:(ret == ERR_SUCCESS)]
+                                    to:self.currentCallbackId];
+                break;
+            default:
+                [self sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                            messageAsInt:ret]
+                                    to:self.currentCallbackId];
+                break;
+        }
+        self.currentCallbackId = nil;
+
+    } else {
+        [self fireQQEvent:[self errCodeFromQQ:retCode] withStr:[self errStrFromQQ:retCode]];
+    }
 }
 
 - (void) fireQQEvent:(int)errCode withStr:(NSString*)errStr

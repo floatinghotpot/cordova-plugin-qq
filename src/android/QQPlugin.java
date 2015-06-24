@@ -70,6 +70,7 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
     protected String appName = "";
 
     protected Tencent mTencent = null;
+	public static CallbackContext currentCallbackContext = null;
 
 	protected String __getProductShortName() {
 		return "QQ";
@@ -90,7 +91,10 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
                 this.setOptions(options);
             }
             boolean isOk = this.share( options );
-        	result = new PluginResult(isOk ? Status.OK : Status.ERROR);
+
+            // we send callback in qq callback
+            currentCallbackContext = callbackContext;
+            return true;
 
         } else {
             Log.w(LOGTAG, String.format("Invalid action passed: %s", action));
@@ -197,11 +201,24 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
 	}
 
     @SuppressLint("DefaultLocale")
-    protected void fireQQEvent(int errCode, String errStr) {
-        String obj = __getProductShortName();
-        String json = String.format("{'errCode':%d,'errStr':'%s'}", errCode, errStr);
-        Log.d(LOGTAG, json);
-        fireEvent(obj, "QQEvent", json);
+	protected void fireQQEvent(int errCode, String errStr) {
+        if(currentCallbackContext != null) {
+            PluginResult result = null;
+            if((errCode == ERR_SUCCESS) || (errCode == ERR_CANCELLED)) {
+                result = new PluginResult(Status.OK, (errCode == ERR_SUCCESS));
+            } else {
+                result = new PluginResult(Status.ERROR, errCode);
+            }
+
+            if(result != null) sendPluginResult(result, currentCallbackContext);
+            currentCallbackContext = null;
+
+        } else {
+            String obj = __getProductShortName();
+            String json = String.format("{'errCode':%d,'errStr':'%s'}", errCode, errStr);
+            Log.d(LOGTAG, json);
+            fireEvent(obj, "QQEvent", json);
+        }
     }
 
 	@Override

@@ -34,11 +34,14 @@ qqExport.setOptions = function(options, successCallback, failureCallback) {
 	  }
 	};
 
+/*
+* share(message, subject, img, url, function(shared){}, function(err){});
+*/
 qqExport.share = function(message, subject, img, url, successCallback, failureCallback) {
 	var options = {
         message: message,
         subject: subject,
-        img: img,
+        image: img,
         url: url,
         qqZone: false,
     };
@@ -46,11 +49,14 @@ qqExport.share = function(message, subject, img, url, successCallback, failureCa
 	cordova.exec( successCallback, failureCallback, 'QQ', 'share', [ options ] );
 };
 
+/*
+* shareQZone(message, subject, img, url, function(shared){}, function(err){});
+*/
 qqExport.shareQZone = function(message, subject, img, url, successCallback, failureCallback) {
 	var options = {
         message: message,
         subject: subject,
-        img: img,
+        image: img,
         url: url,
         qqZone: true,
     };
