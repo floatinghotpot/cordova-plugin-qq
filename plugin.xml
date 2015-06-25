@@ -3,7 +3,7 @@
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	id="cordova-plugin-qq"
-	version="0.9.6">
+	version="0.9.7">
       
     <name>QQ</name>
 	<description>Cordova plugin for Tencent QQ Open SDK</description>
@@ -47,7 +47,8 @@
         <config-file target="AndroidManifest.xml" parent="/*">
 			<uses-permission android:name="android.permission.INTERNET"/>
 			<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-          </config-file>
+			<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+        </config-file>
           
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="QQ">

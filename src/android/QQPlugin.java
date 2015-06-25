@@ -5,6 +5,8 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.apache.cordova.PluginResult.Status;
@@ -12,11 +14,13 @@ import org.apache.http.conn.ConnectTimeoutException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+
 import com.rjfun.cordova.ext.CordovaPluginExt;
 import com.tencent.connect.share.QQShare;
 import com.tencent.connect.share.QzoneShare;
@@ -165,7 +169,9 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
             params.putString(QzoneShare.SHARE_TO_QQ_TITLE, subject);
             params.putString(QzoneShare.SHARE_TO_QQ_SUMMARY,  message);
             params.putString(QzoneShare.SHARE_TO_QQ_TARGET_URL,  url);
-            params.putString(QzoneShare.SHARE_TO_QQ_IMAGE_URL, image);
+            ArrayList<String> images = new ArrayList<String>();
+            images.add( image );
+            params.putStringArrayList(QQShare.SHARE_TO_QQ_IMAGE_URL, images);
             params.putString(QzoneShare.SHARE_TO_QQ_APP_NAME,  this.appName + "" + this.appId);
 
         } else {
@@ -173,7 +179,7 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
             params.putString(QQShare.SHARE_TO_QQ_TITLE, subject);
             params.putString(QQShare.SHARE_TO_QQ_SUMMARY,  message);
             params.putString(QQShare.SHARE_TO_QQ_TARGET_URL,  url);
-            params.putString(QQShare.SHARE_TO_QQ_IMAGE_URL, image);
+            params.putString(QzoneShare.SHARE_TO_QQ_IMAGE_URL, image);
             params.putString(QQShare.SHARE_TO_QQ_APP_NAME,  this.appName + "" + this.appId);
             //params.putInt(QQShare.SHARE_TO_QQ_EXT_INT,  0);
         }
