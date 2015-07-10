@@ -22,6 +22,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.rjfun.cordova.ext.CordovaPluginExt;
+import com.tencent.connect.common.Constants;
 import com.tencent.connect.share.QQShare;
 import com.tencent.connect.share.QzoneShare;
 import com.tencent.open.utils.HttpUtils.HttpStatusException;
@@ -202,7 +203,9 @@ public class QQPlugin extends CordovaPluginExt implements IUiListener, IRequestL
 
 	@Override
 	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
-	    mTencent.onActivityResult(requestCode, resultCode, intent);
+		if((Constants.REQUEST_API == requestCode) && (mTencent != null)) {
+			mTencent.onActivityResult(requestCode, resultCode, intent);
+		}
 	    super.onActivityResult(requestCode, resultCode, intent);
 	}
 
